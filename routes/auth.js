@@ -46,4 +46,18 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// Add this new route to check session status
+router.get('/check-session', (req, res) => {
+  if (req.session.user) {
+    res.json({
+      isLoggedIn: true,
+      userType: req.session.user.userType
+    });
+  } else {
+    res.json({
+      isLoggedIn: false
+    });
+  }
+});
+
 module.exports = router; 

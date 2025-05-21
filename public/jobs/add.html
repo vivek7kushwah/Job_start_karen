@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Job Opportunity - Job Start Karen</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header>
+        <img src="/images/logo.png" alt="JOB START KAREN Logo" style="height: 50px; margin-right: 10px;">
+        <h1><i class="fas fa-briefcase"></i> JOB START KAREN</h1>
+    </header>
+
+    <div class="form-container">
+        <h2>Add New Job Opportunity</h2>
+        <form id="addJobForm" enctype="multipart/form-data">
+            <input type="text" name="companyName" placeholder="Company Name *" required>
+            <input type="text" name="salary" placeholder="Salary *" required>
+            <input type="text" name="educationalRequirement" placeholder="Educational Requirement (Optional)">
+            <input type="text" name="address" placeholder="Address (Optional)">
+            <input type="text" name="timing" placeholder="Working Hours (Optional)">
+            <input type="text" name="experience" placeholder="Experience Required (Optional)">
+            <input type="tel" name="contactNumber" placeholder="Contact Number (Optional)">
+            
+            <div class="file-upload">
+                <label for="jobImage">Job Image (Optional):</label>
+                <input type="file" id="jobImage" name="jobImage" accept="image/*">
+            </div>
+
+            <div class="file-upload">
+                <label for="companyLogo">Company Logo (Optional):</label>
+                <input type="file" id="companyLogo" name="companyLogo" accept="image/*">
+            </div>
+
+            <button type="submit">Add Job</button>
+        </form>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Home</a>
+        <a href="/jobs/add"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Opportunity</a>
+        <a href="/search"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Find</a>
+        <a href="/share"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Share</a>
+        <a href="/profile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile</a>
+    </nav>
+
+    <script>
+        // Check authentication status when page loads
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/auth/check-session');
+                if (!response.ok) {
+                    throw new Error('Failed to check session');
+                }
+                const data = await response.json();
+                
+                if (!data.isLoggedIn) {
+                    alert('Please login first');
+                    window.location.href = '/profile';
+                } else if (data.userType !== 'admin' && data.userType !== 'hr') {
+                    alert('Only admins and HR can add jobs');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Error checking session:', error);
+                alert('Error checking authentication. Please try again.');
+                window.location.href = '/profile';
+            }
+        });
+
+        document.getElementById('addJobForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/jobs/add', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.status === 401) {
+                    alert('Please login first');
+                    window.location.href = '/profile';
+                    return;
+                }
+                
+                if (response.status === 403) {
+                    alert('Only admins and HR can add jobs');
+                    window.location.href = '/';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add job');
+                }
+                
+                const data = await response.json();
+                alert('Job added successfully!');
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error adding job. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html> 

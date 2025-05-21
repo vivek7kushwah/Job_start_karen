@@ -34,6 +34,9 @@ app.use(session({
 const authRoute = require('./routes/auth');
 app.use('/auth', authRoute);
 
+const jobsRoute = require('./routes/jobs');
+app.use('/jobs', jobsRoute);
+
 app.get('/profile', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/profile.html'));
 });
