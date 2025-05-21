@@ -51,7 +51,8 @@ router.get('/check-session', (req, res) => {
   if (req.session.user) {
     res.json({
       isLoggedIn: true,
-      userType: req.session.user.userType
+      userType: req.session.user.userType,
+      mobile: req.session.user.mobile
     });
   } else {
     res.json({

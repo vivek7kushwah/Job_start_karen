@@ -12,6 +12,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
+// Session middleware
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    secure: false, // Set to true if using HTTPS
+    maxAge: 10 * 60 * 1000 // 10 minutes in milliseconds
+  }
+}));
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -23,13 +34,6 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Routes
 const homeRoute = require('./routes/home');
 app.use('/', homeRoute);
-
-app.use(session({
-  secret: 'your-secret-key',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false } // Set to true if using HTTPS
-}));
 
 const authRoute = require('./routes/auth');
 app.use('/auth', authRoute);
