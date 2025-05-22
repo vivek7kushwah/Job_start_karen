@@ -2,6 +2,7 @@ const express = require('express');
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const router = express.Router();
+const Job = require('../models/Job');
 
 router.post('/login', async (req, res) => {
   const { userType, mobile, password } = req.body;
@@ -23,12 +24,13 @@ router.post('/login', async (req, res) => {
 
 router.post('/signup', async (req, res) => {
   const { userType, mobile, password } = req.body;
+  const { name } = req.body;
   try {
     const existingUser = await User.findOne({ mobile });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
-    const newUser = new User({ userType, mobile, password });
+    const newUser = new User({ userType, mobile, password, name });
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
@@ -58,6 +60,52 @@ router.get('/check-session', (req, res) => {
     res.json({
       isLoggedIn: false
     });
+  }
+});
+
+// New route to fetch user-specific application data
+router.get('/applications', async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: 'Please login to view applications' });
+  }
+
+  const { userType, mobile } = req.session.user;
+
+  try {
+    let applications = [];
+
+    if (userType === 'applicant') {
+      // For applicants, fetch their user document and populate the applications array
+      const userWithApplications = await User.findOne({ mobile: mobile })
+        .populate({
+          path: 'applications.jobId',
+          select: 'title companyName' // Only select job title and company name
+        })
+        .exec();
+      
+      if (userWithApplications) {
+        applications = userWithApplications.applications;
+        console.log('Applicant applications fetched:', JSON.stringify(applications, null, 2));
+      } else {
+         console.log('Applicant user not found.');
+      }
+    } else if (userType === 'hr') {
+      // For HR, find jobs they have posted and include all applicants
+      // Assuming jobs are linked to HR via the 'postedBy' field (mobile number)
+      applications = await Job.find({ postedBy: mobile }, 'title companyName applicants')
+        .populate('applicants.user', 'name age address mobile') // Populate applicant user details for HR
+        .exec();
+    } else if (userType === 'admin') {
+      // For admin, fetch all jobs and include all applicants
+      applications = await Job.find({}, 'title companyName applicants')
+        .populate('applicants.user', 'name age address mobile') // Populate applicant user details
+        .exec();
+    }
+
+    res.json(applications);
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    res.status(500).json({ message: 'Error fetching applications', error: error.message });
   }
 });
 

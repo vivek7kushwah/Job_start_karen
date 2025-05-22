@@ -2,6 +2,7 @@ const express = require('express');
 const Job = require('../models/Job');
 const multer = require('multer');
 const path = require('path');
+const User = require('../models/User');
 
 const router = express.Router();
 
@@ -42,7 +43,7 @@ router.get('/add', checkAuth, (req, res) => {
 });
 
 router.post('/add', checkAuth, upload.fields([{ name: 'jobImage', maxCount: 1 }, { name: 'companyLogo', maxCount: 1 }]), async (req, res) => {
-  const { userType } = req.session.user;
+  const { userType, mobile } = req.session.user;
   if (userType !== 'admin' && userType !== 'hr') {
     return res.status(403).json({ message: 'Only admins and HR can add jobs' });
   }
@@ -77,7 +78,8 @@ router.post('/add', checkAuth, upload.fields([{ name: 'jobImage', maxCount: 1 },
       experience, 
       contactNumber, 
       jobImage, 
-      companyLogo 
+      companyLogo,
+      postedBy: mobile // Add the HR's mobile number as postedBy
     });
     await newJob.save();
     res.status(201).json({ message: 'Job added successfully' });
@@ -117,31 +119,56 @@ router.get('/:id', async (req, res) => {
 });
 
 // Apply for a job
-router.post('/:id/apply', async (req, res) => {
+router.post('/:id/apply', checkAuth, async (req, res) => {
   try {
-    // Check if user is logged in
-    if (!req.session.user) {
-      return res.status(401).json({ message: 'Please login to apply' });
-    }
-
-    const job = await Job.findById(req.params.id);
+    const jobId = req.params.id;
+    const job = await Job.findById(jobId);
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    // Check if user has already applied
-    if (job.applicants.includes(req.session.user.mobile)) {
+    const applicantMobile = req.session.user.mobile; // Get mobile from session
+    const user = await User.findOne({ mobile: applicantMobile }); // Find the user
+
+    if (!user) {
+      return res.status(404).json({ message: 'Applicant user not found' });
+    }
+
+    // Check if user has already applied for this job (in user's applications array)
+    const alreadyAppliedInUser = user.applications.some(app => app.jobId.toString() === jobId);
+    
+    // Also check if user is already in the job's applicants array (for redundancy/safety)
+    const alreadyAppliedInJob = job.applicants.some(app => app.user.toString() === user._id.toString());
+
+    if (alreadyAppliedInUser || alreadyAppliedInJob) {
       return res.status(400).json({ message: 'You have already applied for this job' });
     }
 
-    // Add applicant
-    job.applicants.push(req.session.user.mobile);
+    // Add application to user's applications array
+    user.applications.push({
+        jobId: job._id,
+        status: 'Pending', // Initial status
+        appliedDate: new Date()
+    });
+
+    // Add user reference to job's applicants array
+    job.applicants.push({
+        user: user._id,
+        status: 'Pending' // Initial status for the job's record
+    });
+
+    // Save both documents
+    await user.save();
     await job.save();
 
-    res.json({ message: 'Application submitted successfully' });
+    res.json({ message: 'Application submitted successfully!' });
   } catch (error) {
     console.error('Error applying for job:', error);
-    res.status(500).json({ message: 'Error applying for job' });
+    // Handle Mongoose validation errors specifically if needed
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Validation Error', errors: error.errors });
+    }
+    res.status(500).json({ message: 'Error applying for job', error: error.message });
   }
 });
 

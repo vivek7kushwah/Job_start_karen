@@ -245,6 +245,41 @@
         </div>
     </div>
 
+    <!-- Application Form Modal -->
+    <div class="modal" id="application-modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-application-modal">&times;</span>
+            <h2>Job Application</h2>
+            <form id="application-form">
+                <input type="hidden" id="application-job-id">
+                <label for="applicant-name">Full Name:</label>
+                <input type="text" id="applicant-name" required>
+                
+                <label for="applicant-education">Education:</label>
+                <input type="text" id="applicant-education">
+                
+                <label for="applicant-experience">Experience:</label>
+                <input type="text" id="applicant-experience">
+                
+                <label for="applicant-age">Age:</label>
+                <input type="number" id="applicant-age">
+                
+                <label for="applicant-gender">Gender:</label>
+                <select id="applicant-gender">
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <label for="applicant-phone">Phone Number:</label>
+                <input type="tel" id="applicant-phone" required>
+                
+                <button type="submit">Submit Application</button>
+            </form>
+        </div>
+    </div>
+
     <nav class="bottom-nav">
         <a href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Home</a>
         <a href="/jobs/add" id="add-opportunity-link" class="restricted-link"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Opportunity</a>
@@ -299,6 +334,23 @@
             document.getElementById('job-modal').style.display = 'block';
         }
 
+        // Function to hide job details modal
+        function hideJobDetailsModal() {
+            document.getElementById('job-modal').style.display = 'none';
+        }
+
+        // Function to show the application modal
+        function showApplicationModal(jobId) {
+            document.getElementById('application-job-id').value = jobId;
+            document.getElementById('application-modal').style.display = 'block';
+        }
+
+        // Function to hide the application modal
+        function hideApplicationModal() {
+            document.getElementById('application-modal').style.display = 'none';
+            document.getElementById('application-form').reset(); // Reset the form
+        }
+
         // Function to load jobs
         async function loadJobs() {
             try {
@@ -327,6 +379,13 @@
                             }
                             const job = await response.json();
                             showJobDetails(job);
+
+                            // Update the apply button in the job details modal
+                            document.getElementById('apply-button').onclick = () => {
+                                hideJobDetailsModal(); // Hide job details modal
+                                showApplicationModal(jobId); // Show application modal
+                            };
+
                         } catch (error) {
                             console.error('Error fetching job details:', error);
                             alert('Failed to load job details. Please try again.');
@@ -389,29 +448,16 @@
             document.getElementById('job-modal').style.display = 'none';
         });
 
+        // Close application modal
+        document.getElementById('close-application-modal').addEventListener('click', hideApplicationModal);
+
         window.addEventListener('click', (e) => {
             const modal = document.getElementById('job-modal');
+            const applicationModal = document.getElementById('application-modal');
             if (e.target === modal) {
                 modal.style.display = 'none';
-            }
-        });
-
-        // Apply button click handler
-        document.getElementById('apply-button').addEventListener('click', async () => {
-            try {
-                const response = await fetch('/auth/check-session');
-                const data = await response.json();
-                
-                if (!data.isLoggedIn) {
-                    alert('Please login to apply for this job');
-                    return;
-                }
-
-                // TODO: Implement job application logic
-                alert('Application submitted successfully!');
-            } catch (error) {
-                console.error('Error applying for job:', error);
-                alert('Failed to apply for the job. Please try again.');
+            } else if (e.target === applicationModal) {
+                hideApplicationModal();
             }
         });
 
@@ -429,6 +475,55 @@
                     card.style.display = 'none';
                 }
             });
+        });
+
+        // Add event listener for the application form submission
+        document.getElementById('application-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Application form submitted.');
+            
+            const jobId = document.getElementById('application-job-id').value;
+            const name = document.getElementById('applicant-name').value;
+            const education = document.getElementById('applicant-education').value;
+            const experience = document.getElementById('applicant-experience').value;
+            const age = document.getElementById('applicant-age').value;
+            const gender = document.getElementById('applicant-gender').value;
+            const phoneNumber = document.getElementById('applicant-phone').value;
+
+            // Basic validation
+            if (!name || !phoneNumber) {
+                alert('Please fill out required fields (Full Name, Phone Number).');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/jobs/${jobId}/apply`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        education,
+                        experience,
+                        age,
+                        gender,
+                        phoneNumber
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Application submitted successfully!');
+                    hideApplicationModal();
+                } else {
+                    alert(result.message || 'Failed to submit application.');
+                }
+            } catch (error) {
+                console.error('Error submitting application:', error);
+                alert('An error occurred while submitting your application.');
+            }
         });
 
         // Load jobs when page loads
