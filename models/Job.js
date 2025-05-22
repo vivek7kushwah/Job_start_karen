@@ -1,16 +1,58 @@
 const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema({
-  companyName: { type: String, required: true },
-  salary: { type: String, required: true },
-  educationalRequirement: { type: String, required: false },
-  address: { type: String, required: false },
-  timing: { type: String, required: false },
-  experience: { type: String, required: false },
-  dateOfPost: { type: Date, default: Date.now },
-  contactNumber: { type: String, required: false },
-  jobImage: { type: String, required: false },
-  companyLogo: { type: String, required: false },
+    title: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    companyName: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    location: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    salary: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    education: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    description: {
+        type: String,
+        required: false
+    },
+    requirements: [{
+        type: String,
+        required: false
+    }],
+    companyLogo: {
+        type: String,
+        default: null
+    },
+    jobImage: {
+        type: String,
+        default: null
+    },
+    postedBy: {
+        type: String,
+        required: false
+    },
+    applicants: [{
+        type: String
+    }],
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
 });
 
 module.exports = mongoose.model('Job', jobSchema); 

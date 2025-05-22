@@ -7,14 +7,23 @@ const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'public/images');
+    cb(null, 'public/uploads/');
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname));
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 // Middleware to check if user is logged in
 const checkAuth = (req, res, next) => {
@@ -79,6 +88,60 @@ router.post('/add', checkAuth, upload.fields([{ name: 'jobImage', maxCount: 1 },
       error: error.message,
       details: error.errors 
     });
+  }
+});
+
+// Get all jobs
+router.get('/', async (req, res) => {
+  try {
+    const jobs = await Job.find().sort({ createdAt: -1 });
+    res.json(jobs);
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    res.status(500).json({ message: 'Error fetching jobs' });
+  }
+});
+
+// Get a specific job
+router.get('/:id', async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    res.json(job);
+  } catch (error) {
+    console.error('Error fetching job:', error);
+    res.status(500).json({ message: 'Error fetching job' });
+  }
+});
+
+// Apply for a job
+router.post('/:id/apply', async (req, res) => {
+  try {
+    // Check if user is logged in
+    if (!req.session.user) {
+      return res.status(401).json({ message: 'Please login to apply' });
+    }
+
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    // Check if user has already applied
+    if (job.applicants.includes(req.session.user.mobile)) {
+      return res.status(400).json({ message: 'You have already applied for this job' });
+    }
+
+    // Add applicant
+    job.applicants.push(req.session.user.mobile);
+    await job.save();
+
+    res.json({ message: 'Application submitted successfully' });
+  } catch (error) {
+    console.error('Error applying for job:', error);
+    res.status(500).json({ message: 'Error applying for job' });
   }
 });
 
