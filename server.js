@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const session = require('express-session');
+const fs = require('fs');
 
 const app = express();
 
@@ -44,12 +45,29 @@ app.use('/auth', authRoute);
 const jobsRoute = require('./routes/jobs');
 app.use('/jobs', jobsRoute);
 
+// Add company routes
+const companyRoute = require('./routes/company');
+app.use('/company', companyRoute);
+
 app.get('/profile', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/profile.html'));
 });
 
+// Serve the contact.html file at the /contact URL
+app.get('/contact', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/contact.html'));
+});
+
 // Now serve static files after the specific routes
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+// Create necessary directories if they don't exist
+const uploadDirs = ['public/uploads', 'public/uploads/founders'];
+uploadDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
