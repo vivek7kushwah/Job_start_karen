@@ -58,6 +58,11 @@ app.get('/contact', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/contact.html'));
 });
 
+// Serve the share.html file at the /share URL
+app.get('/share', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/share.html'));
+});
+
 // Now serve static files after the specific routes
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 

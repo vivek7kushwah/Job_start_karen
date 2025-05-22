@@ -40,7 +40,8 @@ const companySchema = new mongoose.Schema({
         facebook: String,
         twitter: String,
         linkedin: String,
-        instagram: String
+        instagram: String,
+        whatsapp: String
     },
     lastUpdatedBy: {
         type: String,
