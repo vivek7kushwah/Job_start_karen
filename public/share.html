@@ -4,125 +4,210 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Share - Job Start Karen</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .share-container {
+            max-width: 600px;
+            margin: 40px auto;
             padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
             text-align: center;
         }
 
-        .share-container h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-
         .share-description {
+            color: var(--text-secondary);
+            margin: 20px 0;
             font-size: 1.1em;
-            color: #666;
-            margin-bottom: 30px;
-            line-height: 1.6;
         }
 
         .share-button {
-            background: #007bff;
+            background: var(--accent-color);
             color: white;
             border: none;
-            padding: 12px 30px;
+            padding: 15px 30px;
             border-radius: 25px;
             font-size: 1.1em;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px var(--nav-shadow);
         }
 
         .share-button:hover {
-            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--nav-shadow);
         }
 
         /* Fallback Modal Styles */
         .fallback-modal {
-            display: none; 
+            display: none;
             position: fixed;
-            z-index: 1001;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4); 
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
         }
 
         .fallback-modal-content {
-            background-color: #fefefe;
-            margin: 15% auto; 
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
+            position: relative;
+            background: var(--bg-primary);
+            width: 90%;
             max-width: 400px;
-            border-radius: 10px;
-            text-align: left;
+            margin: 100px auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px var(--nav-shadow);
         }
 
         .close-fallback-modal {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
         }
 
-        .close-fallback-modal:hover,
-        .close-fallback-modal:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
+        .share-options {
+            margin-top: 20px;
         }
 
         .share-options button {
             display: block;
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #eee;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
             cursor: pointer;
             text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .share-options button:hover {
+            background-color: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .share-options a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--bg-primary);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        .modal-content h2 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .modal-button.primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .modal-button.secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .modal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
         }
     </style>
 </head>
 <body>
-    <header>
-        <img src="/images/logo.png" alt="JOB START KAREN Logo" style="height: 50px; margin-right: 10px;">
-        <h1><i class="fas fa-briefcase"></i> JOB START KAREN</h1>
-    </header>
-
-    <div class="share-container">
-        <h2>Share Job Start Karen</h2>
-        <p class="share-description">Help others find great job opportunities by sharing our platform!</p>
-        <button class="share-button" id="share-app-button">Share Now</button>
+    <!-- Add modal HTML -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <h2>Access Restricted</h2>
+            <p id="modalMessage">You must be logged in as HR or Admin to add job opportunities.</p>
+            <div class="modal-buttons">
+                <button class="modal-button primary" onclick="window.location.href='/profile'">Go to Login</button>
+                <button class="modal-button secondary" onclick="closeAuthModal()">Close</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Fallback Share Modal -->
-    <div id="fallback-share-modal" class="fallback-modal">
-        <div class="fallback-modal-content">
-            <span class="close-fallback-modal">&times;</span>
-            <h3>Share Options</h3>
-            <div class="share-options">
-                <button id="copy-link-button">Copy Link</button>
-                <!-- Add more share options here like Email, Social Media links -->
-                <a href="#" id="share-email-button"><button>Share via Email</button></a>
-                <a href="#" id="share-twitter-button" target="_blank"><button>Share on Twitter</button></a>
-                <a href="#" id="share-linkedin-button" target="_blank"><button>Share on LinkedIn</button></a>
+    <header>
+        <img src="/images/logo.png" alt="JOB START KAREN Logo">
+        <h1> JOB START KAREN</h1>
+    </header>
+
+    <div class="main-content-container">
+        <div class="share-container">
+            <h2>Share Job Start Karen</h2>
+            <p class="share-description">Help others find great job opportunities by sharing our platform!</p>
+            <button class="share-button" id="share-app-button">Share Now</button>
+        </div>
+
+        <!-- Fallback Share Modal -->
+        <div id="fallback-share-modal" class="fallback-modal">
+            <div class="fallback-modal-content">
+                <span class="close-fallback-modal">&times;</span>
+                <h3>Share Options</h3>
+                <div class="share-options">
+                    <button id="copy-link-button">Copy Link</button>
+                    <a href="#" id="share-email-button"><button>Share via Email</button></a>
+                    <a href="#" id="share-twitter-button" target="_blank"><button>Share on Twitter</button></a>
+                    <a href="#" id="share-linkedin-button" target="_blank"><button>Share on LinkedIn</button></a>
+                </div>
             </div>
         </div>
     </div>
 
     <nav class="bottom-nav">
         <a href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Home</a>
-        <a href="/jobs/add" id="add-opportunity-link" class="restricted-link"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Opportunity</a>
-        <a href="/contact"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Contact Us</a>
-        <a href="/share"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Share</a>
+        <a href="/contact"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Contact</a>
+        <a href="/jobs/add" id="add-opportunity-link" class="restricted-link"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add</a>
+        <a href="/share" class="active"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Share</a>
         <a href="/profile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile</a>
     </nav>
 
@@ -199,6 +284,51 @@
             const summary = encodeURIComponent(shareData.text);
             e.target.href = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}&summary=${summary}`;
              fallbackModal.style.display = 'none';
+        });
+
+        // Add modal functions
+        function showAuthModal(message) {
+            const modal = document.getElementById('authModal');
+            const modalMessage = document.getElementById('modalMessage');
+            modalMessage.textContent = message;
+            modal.style.display = 'flex';
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('authModal');
+            modal.style.display = 'none';
+        }
+
+        // Handle restricted link click
+        document.getElementById('add-opportunity-link').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/auth/check-session');
+                const data = await response.json();
+                
+                if (!data.isLoggedIn) {
+                    showAuthModal('Please log in to add job opportunities.');
+                } else if (data.userType === 'applicant') {
+                    showAuthModal('Applicants cannot add job opportunities. Please contact the admin for more information.');
+                } else {
+                    window.location.href = '/jobs/add';
+                }
+            } catch (error) {
+                console.error('Error checking session:', error);
+                showAuthModal('An error occurred. Please try again later.');
+            }
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            const authModal = document.getElementById('authModal');
+            // Also check if the click is inside the fallback modal, if so, don't close the auth modal
+            const fallbackModalContent = document.getElementById('fallback-share-modal').querySelector('.fallback-modal-content');
+            const isClickInsideFallbackModal = fallbackModalContent && fallbackModalContent.contains(e.target);
+
+            if (e.target === authModal && !isClickInsideFallbackModal) {
+                closeAuthModal();
+            }
         });
     </script>
 </body>

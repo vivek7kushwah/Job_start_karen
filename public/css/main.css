@@ -1,0 +1,326 @@
+/* Global Variables */
+:root {
+  /* Light Theme (Default) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --accent-color: #007bff;
+  --nav-bg: #ffffff;
+  --nav-shadow: rgba(0, 0, 0, 0.1);
+  --card-bg: #ffffff;
+  --border-color: #e0e0e0;
+  --nav-height: 60px;
+  --bottom-nav-height: 70px;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --accent-color: #4dabf7;
+  --nav-bg: #2d2d2d;
+  --nav-shadow: rgba(0, 0, 0, 0.3);
+  --card-bg: #2d2d2d;
+  --border-color: #404040;
+}
+
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  padding-top: var(--nav-height);
+  padding-bottom: var(--bottom-nav-height);
+  min-height: 100vh;
+}
+
+/* Navigation Styles */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
+  background-color: var(--nav-bg);
+  box-shadow: 0 2px 4px var(--nav-shadow);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+header img {
+  height: 40px;
+  margin-right: 15px;
+  transition: transform 0.3s ease;
+}
+
+header img:hover {
+  transform: scale(1.05);
+}
+
+header h1 {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+header h1 i {
+  font-size: 1.2em;
+  color: var(--accent-color);
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background-color: var(--nav-bg);
+  box-shadow: 0 -2px 4px var(--nav-shadow);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.bottom-nav a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+  padding: 8px 16px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.bottom-nav a:hover, .bottom-nav a.active {
+  color: var(--accent-color);
+  background: rgba(0, 123, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.bottom-nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--accent-color);
+  transition: width 0.3s ease;
+}
+
+.bottom-nav a:hover::after, .bottom-nav a.active::after {
+  width: 20px;
+}
+
+.bottom-nav svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  transition: transform 0.3s ease;
+}
+
+.bottom-nav a:hover svg {
+  transform: scale(1.1);
+}
+
+/* Container Styles */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px var(--nav-shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+}
+
+/* Button Styles */
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Form Styles */
+input, textarea, select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+/* Link Styles */
+a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 999;
+  padding: 8px 16px;
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  :root {
+    --nav-height: 50px;
+    --bottom-nav-height: 60px;
+  }
+
+  header h1 {
+    font-size: 1.2rem;
+  }
+
+  header img {
+    height: 30px;
+  }
+
+  .bottom-nav a {
+    font-size: 0.7rem;
+    padding: 6px 12px;
+  }
+
+  .bottom-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .container {
+    padding: 10px;
+  }
+  
+  .card {
+    padding: 15px;
+  }
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+/* Job Card Specific Styles */
+.job-card {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease;
+}
+
+.job-card:hover {
+  transform: translateY(-2px);
+}
+
+.job-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.job-company {
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.job-salary {
+  color: var(--accent-color);
+  font-weight: 500;
+}
+
+/* Image Styles */
+.company-logo {
+  max-width: 100px;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Loading Spinner */
+.spinner {
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--accent-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

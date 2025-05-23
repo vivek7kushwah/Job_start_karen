@@ -4,141 +4,823 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile - Job Start Karen</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script>
-    // Check session immediately when page starts loading
+    // Check session when the DOM is fully loaded
     async function checkSession() {
       try {
+        console.log('Checking session...');
         const response = await fetch('/auth/check-session');
         if (!response.ok) {
           throw new Error('Failed to check session');
         }
         const data = await response.json();
-        
-        // Set initial display state based on session
-        if (data.isLoggedIn) {
-          document.getElementById('auth-forms').style.display = 'none';
-          document.getElementById('user-profile').style.display = 'block';
-          document.getElementById('user-mobile').textContent = data.mobile;
-          document.getElementById('user-type-display').textContent = data.userType;
+        console.log('Session check result:', data);
 
-          // Update Add Opportunity link based on user type
-          const addOpportunityLink = document.getElementById('add-opportunity-link');
-          if (data.userType !== 'admin' && data.userType !== 'hr') {
-            addOpportunityLink.addEventListener('click', (e) => {
-              e.preventDefault();
-              alert('🔒 Restricted Access\n\nOnly HR and Admin users can add job opportunities.\n\nPlease contact your administrator if you need access.');
-            });
-          } else {
-            addOpportunityLink.classList.remove('restricted-link');
-          }
+        const authForms = document.getElementById('auth-forms');
+        const userProfile = document.getElementById('user-profile');
+
+        if (data.isLoggedIn) {
+          console.log('User is logged in. Displaying profile.');
+          if (authForms) authForms.style.display = 'none'; // Explicitly hide forms
+          if (userProfile) userProfile.style.display = 'block'; // Explicitly show profile
+
+          // Now populate details since the section is visible
+          if (document.getElementById('user-mobile')) document.getElementById('user-mobile').textContent = data.mobile;
+          if (document.getElementById('user-type-display')) document.getElementById('user-type-display').textContent = data.userType;
+          
+          // Populate profile details (name and email) if available
+          if (document.getElementById('profile-name')) document.getElementById('profile-name').textContent = data.name || 'User Name';
+          if (document.getElementById('profile-email')) document.getElementById('profile-email').textContent = data.email || ''; // Assuming email is available
+          // You might also want to update the avatar src here if you store avatar paths
 
           // Fetch and display applications based on user type
           fetchApplications(data.userType);
 
         } else {
-          document.getElementById('auth-forms').style.display = 'block';
-          document.getElementById('user-profile').style.display = 'none';
+          console.log('User is not logged in. Displaying auth forms.');
+          if (authForms) authForms.style.display = 'block'; // Explicitly show forms
+          if (userProfile) userProfile.style.display = 'none'; // Explicitly hide profile
         }
+
       } catch (error) {
         console.error('Error checking session:', error);
-        document.getElementById('auth-forms').style.display = 'block';
-        document.getElementById('user-profile').style.display = 'none';
+        // In case of an error, default to showing forms
+        const authForms = document.getElementById('auth-forms');
+        const userProfile = document.getElementById('user-profile');
+        if (authForms) authForms.style.display = 'block';
+        if (userProfile) userProfile.style.display = 'none';
       }
     }
-    // Run session check immediately
-    checkSession();
+
+    // Add modal functions (ensure these are available globally or before DOMContentLoaded)
+    function showModal(message) {
+      const modal = document.getElementById('authModal');
+      const modalMessage = document.getElementById('modalMessage');
+      if (modal) {
+          modalMessage.textContent = message;
+          modal.style.display = 'flex';
+      }
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('authModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    // Run session check and set up event listeners after the DOM is fully loaded
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkSession(); // Wait for session check to complete
+
+        // Handle restricted link click for 'Add' button
+        const addOpportunityLink = document.getElementById('add-opportunity-link');
+        if (addOpportunityLink) {
+             // Remove any previous click listeners by cloning and replacing the node
+            const newLink = addOpportunityLink.cloneNode(true);
+            addOpportunityLink.parentNode.replaceChild(newLink, addOpportunityLink);
+            const updatedAddOpportunityLink = document.getElementById('add-opportunity-link');
+
+             // Check session again specifically for the link click logic
+            const response = await fetch('/auth/check-session');
+            const data = await response.json();
+
+            if (data.userType !== 'admin' && data.userType !== 'hr') {
+                // If user is not admin/hr, add restricted class and modal click behavior
+                updatedAddOpportunityLink.classList.add('restricted-link');
+                updatedAddOpportunityLink.href = '#'; // Prevent default navigation
+                updatedAddOpportunityLink.addEventListener('click', (e) => {
+                    e.preventDefault(); // Ensure default is prevented even if href is #
+                    showModal('You must be logged in as HR or Admin to add job opportunities.');
+                });
+            } else {
+                // If user is admin or hr, remove restricted class and allow default navigation
+                updatedAddOpportunityLink.classList.remove('restricted-link');
+                updatedAddOpportunityLink.href = '/jobs/add';
+                 // Remove any previously added modal click listeners
+                 const clonedLink = updatedAddOpportunityLink.cloneNode(true);
+                 updatedAddOpportunityLink.parentNode.replaceChild(clonedLink, updatedAddOpportunityLink);
+            }
+        }
+
+        // Close modal when clicking outside
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+            window.addEventListener('click', (e) => {
+                if (e.target === authModal) {
+                    closeModal();
+                }
+            });
+        }
+
+         // Set up login form submission listener
+         const loginForm = document.getElementById('loginForm');
+         if(loginForm) {
+             loginForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const userType = document.getElementById('user-type').value;
+              const mobile = document.getElementById('mobile').value;
+              const password = document.getElementById('password').value;
+
+              try {
+                const response = await fetch('/auth/login', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ userType, mobile, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                  console.log('Login successful, checking session to update UI...');
+                  // Instead of reloading, check session directly to update UI
+                  await checkSession(); 
+                } else {
+                  alert(data.message || 'Login failed');
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Login failed');
+              }
+            });
+         }
+
+         // Set up signup form submission listener
+         const signupForm = document.getElementById('signupForm');
+         if(signupForm) {
+              signupForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const userType = document.getElementById('signup-user-type').value;
+              const mobile = document.getElementById('signup-mobile').value;
+              const password = document.getElementById('signup-password').value;
+              const name = document.getElementById('signup-name').value;
+
+              try {
+                const response = await fetch('/auth/signup', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ userType, mobile, password, name })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                  alert('Signup successful! Please login.');
+                  // Switch to login form after successful signup
+                   const toggleLoginButton = document.getElementById('toggle-login');
+                   if(toggleLoginButton) toggleLoginButton.click();
+
+                } else {
+                  alert(data.message || 'Signup failed');
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Signup failed');
+              }
+            });
+         }
+
+         // Set up logout button listener
+         const logoutButton = document.getElementById('logout-button');
+         if(logoutButton) {
+             logoutButton.addEventListener('click', async () => {
+              try {
+                const response = await fetch('/auth/logout', {
+                  method: 'POST'
+                });
+
+                if (response.ok) {
+                  console.log('Logout successful, reloading page...');
+                  window.location.reload(); // Reload the page to update display
+                } else {
+                  alert('Logout failed');
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Logout failed');
+              }
+            });
+         }
+
+        // Toggle between login and signup forms
+        const toggleLoginButton = document.getElementById('toggle-login');
+        const toggleSignupButton = document.getElementById('toggle-signup');
+        const loginFormDiv = document.getElementById('login-form');
+        const signupFormDiv = document.getElementById('signup-form');
+
+        if(toggleLoginButton && toggleSignupButton && loginFormDiv && signupFormDiv) {
+            toggleLoginButton.addEventListener('click', () => {
+              loginFormDiv.style.display = 'block';
+              signupFormDiv.style.display = 'none';
+            });
+
+            toggleSignupButton.addEventListener('click', () => {
+              loginFormDiv.style.display = 'none';
+              signupFormDiv.style.display = 'block';
+            });
+        }
+
+    });
+
+    // Function to fetch and display applications (keep outside DOMContentLoaded if needed elsewhere)
+    async function fetchApplications(userType) {
+      try {
+        const response = await fetch('/auth/applications', { credentials: 'include' });
+        if (!response.ok) {
+          // If response is 401 or 403, user might have been logged out or changed permissions
+          if (response.status === 401 || response.status === 403) {
+              console.warn('Authentication issue fetching applications, refreshing session.');
+               // Trigger a session check again, which will handle redirect if necessary
+               checkSession();
+               return; // Stop further processing
+          }
+
+          throw new Error('Failed to fetch applications');
+        }
+        const jobsWithApplications = await response.json();
+        console.log('Fetched application data:', jobsWithApplications);
+
+        // Assuming the backend returns an object or array structure suitable for each user type
+        // You might need to adjust this based on your actual backend response for /auth/applications
+
+        if (userType === 'applicant') {
+             const applications = Array.isArray(jobsWithApplications) ? jobsWithApplications : []; // Ensure it's an array
+             displayApplicantApplications(applications);
+             // Update applications count (assuming jobsWithApplications length is the count) if element exists
+             const applicationsCountElement = document.getElementById('applications-count');
+             if(applicationsCountElement) applicationsCountElement.textContent = applications.length;
+             // Hide HR/Admin sections
+             const hrSection = document.getElementById('hr-applications-section');
+             const adminSection = document.getElementById('admin-applications-section');
+             if(hrSection) hrSection.style.display = 'none';
+             if(adminSection) adminSection.style.display = 'none';
+
+        } else if (userType === 'hr') {
+             const jobs = Array.isArray(jobsWithApplications) ? jobsWithApplications : []; // Ensure it's an array
+             displayHRApplications(jobs);
+              // Update applications count (sum of applicants across jobs) if element exists
+             const totalApplicants = jobs.reduce((sum, job) => sum + (job.applicants ? job.applicants.length : 0), 0);
+              const applicationsCountElement = document.getElementById('applications-count');
+             if(applicationsCountElement) applicationsCountElement.textContent = totalApplicants;
+             // Hide Applicant/Admin sections
+             const applicantSection = document.getElementById('applicant-applications-section');
+             const adminSection = document.getElementById('admin-applications-section');
+             if(applicantSection) applicantSection.style.display = 'none';
+             if(adminSection) adminSection.style.display = 'none';
+
+        } else if (userType === 'admin') {
+             const jobs = Array.isArray(jobsWithApplications) ? jobsWithApplications : []; // Ensure it's an array
+             displayAdminApplications(jobs);
+              // Update applications count (sum of applicants across all jobs) if element exists
+             const totalApplications = jobs.reduce((sum, job) => sum + (job.applications ? job.applications.length : 0), 0); // Assuming 'applications' field for admin route
+             const applicationsCountElement = document.getElementById('applications-count');
+             if(applicationsCountElement) applicationsCountElement.textContent = totalApplications;
+             // Hide Applicant/HR sections
+             const applicantSection = document.getElementById('applicant-applications-section');
+             const hrSection = document.getElementById('hr-applications-section');
+             if(applicantSection) applicantSection.style.display = 'none';
+             if(hrSection) hrSection.style.display = 'none';
+        }
+
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+        // Display an error message in the appropriate section
+        // Ensure the section elements exist before trying to update them
+        const applicantSection = document.getElementById('applicant-applications-section');
+        const hrSection = document.getElementById('hr-applications-section');
+        const adminSection = document.getElementById('admin-applications-section');
+
+        if (userType === 'applicant' && applicantSection) {
+          document.getElementById('applicant-applications-list').innerHTML = '<p>Error loading your applications.</p>';
+          applicantSection.style.display = 'block';
+        } else if (userType === 'hr' && hrSection) {
+          document.getElementById('hr-applications-list').innerHTML = '<p>Error loading applicant data.</p>';
+          hrSection.style.display = 'block';
+        } else if (userType === 'admin' && adminSection) {
+          document.getElementById('admin-applications-list').innerHTML = '<p>Error loading application data.</p>';
+          adminSection.style.display = 'block';
+        }
+
+         // Set applications count to error state or 0 if elements exist
+        const applicationsCountElement = document.getElementById('applications-count');
+        if(applicationsCountElement) applicationsCountElement.textContent = '-'; // Or 'Error'
+      }
+    }
+
+    // Function to display applications for an applicant
+    function displayApplicantApplications(applications) {
+      const applicationsListDiv = document.getElementById('applicant-applications-list');
+       if (!applicationsListDiv) return; // Exit if the element doesn't exist
+
+      applicationsListDiv.innerHTML = ''; // Clear previous content
+      
+      if (applications.length === 0) {
+        applicationsListDiv.innerHTML = '<p>You have not applied for any jobs yet.</p>';
+      } else {
+        applications.forEach(application => { // Iterate through applications directly
+          // const application = job.applicants[0]; // Remove this, no longer needed
+          
+          // Access job details from the populated jobId
+          const jobTitle = application.jobId ? application.jobId.title : 'N/A';
+          const companyName = application.jobId ? application.jobId.companyName : 'N/A';
+
+          const applicationItem = `
+            <div class="application-item">
+              <h4>${jobTitle} at ${companyName}</h4>
+              <p class="applicant-detail"><strong>Status:</strong> ${application.status}</p>
+              <!-- Applicant's own details are not part of this data structure anymore, 
+                   they are in the user's main profile info -->
+            </div>
+          `;
+          applicationsListDiv.innerHTML += applicationItem;
+        });
+      }
+      const applicantSection = document.getElementById('applicant-applications-section');
+       if(applicantSection) applicantSection.style.display = 'block';
+    }
+
+    // Function to display applications for HR
+    function displayHRApplications(jobs) {
+      const applicationsListDiv = document.getElementById('hr-applications-list');
+      if (!applicationsListDiv) return; // Exit if the element doesn't exist
+
+      applicationsListDiv.innerHTML = ''; // Clear previous content
+
+      if (jobs.length === 0) {
+        applicationsListDiv.innerHTML = '<p>You have not posted any jobs yet, or no one has applied.</p>';
+      } else {
+        jobs.forEach(job => {
+          const jobApplicantsHtml = `
+            <div class="job-applicants">
+              <h4>Applicants for "${job.title || 'N/A'}" at ${job.companyName || 'N/A'}</h4>
+              ${job.applicants && job.applicants.length > 0 ? // Added null/undefined check for job.applicants
+                job.applicants.map(applicantEntry => {
+                  const applicant = applicantEntry.user; // Get populated user object
+                  // Check if applicant and their mobile exist before accessing
+                  const applicantMobile = applicant && applicant.mobile ? applicant.mobile : 'N/A';
+                  const applicantEducation = applicant && applicant.education ? applicant.education : 'N/A';
+
+                  return `
+                    <div class="applicant-detail-item">
+                      <p><strong>Applicant Name:</strong> ${applicant && applicant.name ? applicant.name : 'N/A'}</p>
+                      <p><strong>Status:</strong> ${applicantEntry.status}</p>
+                      <p><strong>Phone:</strong> ${applicantMobile}</p>
+                      <p><strong>Education:</strong> ${applicantEducation}</p>
+                      <hr>
+                    </div>
+                  `;
+                }).join('')
+                : '<p>No applicants for this job yet.</p>'
+              }
+            </div>
+          `;
+          applicationsListDiv.innerHTML += jobApplicantsHtml;
+        });
+      }
+       const hrSection = document.getElementById('hr-applications-section');
+       if(hrSection) hrSection.style.display = 'block';
+    }
+
+    // Function to display applications for Admin
+    function displayAdminApplications(jobs) {
+      const applicationsListDiv = document.getElementById('admin-applications-list');
+      if (!applicationsListDiv) return; // Exit if the element doesn't exist
+
+      applicationsListDiv.innerHTML = ''; // Clear previous content
+
+      if (jobs.length === 0) {
+        applicationsListDiv.innerHTML = '<p>No jobs or applications found in the system.</p>';
+      } else {
+        jobs.forEach(job => {
+          const jobApplicantsHtml = `
+            <div class="job-applicants">
+              <h4>Applications for "${job.title || 'N/A'}" at ${job.companyName || 'N/A'}</h4>
+               ${job.applicants && job.applicants.length > 0 ? // Added null/undefined check for job.applicants
+                job.applicants.map(applicantEntry => {
+                  const applicant = applicantEntry.user; // Get populated user object
+                   // Check if applicant and their mobile exist before accessing
+                  const applicantMobile = applicant && applicant.mobile ? applicant.mobile : 'N/A';
+                  const applicantEducation = applicant && applicant.education ? applicant.education : 'N/A';
+
+                  return `
+                    <div class="applicant-detail-item">
+                      <p><strong>User Type:</strong> Applicant (Implicit)</p> <!-- User type is always applicant for applications -->
+                      <p><strong>Applicant Name:</strong> ${applicant && applicant.name ? applicant.name : 'N/A'}</p>
+                      <p><strong>Status:</strong> ${applicantEntry.status}</p>
+                      <p><strong>Phone:</strong> ${applicantMobile}</p>
+                      <p><strong>Education:</strong> ${applicantEducation}</p>
+                      <hr>
+                    </div>
+                  `;
+                }).join('')
+                : '<p>No applicants for this job yet.</p>'
+              }
+            </div>
+          `;
+          applicationsListDiv.innerHTML += jobApplicantsHtml;
+        });
+      }
+      const adminSection = document.getElementById('admin-applications-section');
+       if(adminSection) adminSection.style.display = 'block';
+    }
+
+    // Login form handling (moved inside DOMContentLoaded listener)
+    // Signup form handling (moved inside DOMContentLoaded listener)
+    // Logout handling (moved inside DOMContentLoaded listener)
+    // Toggle between login and signup forms (moved inside DOMContentLoaded listener)
+
   </script>
+  <style>
+    .profile-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .profile-header {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      text-align: left;
+      border: 1px solid var(--border-color);
+    }
+
+    .profile-header-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 30px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 0;
+      flex-shrink: 0;
+      object-fit: cover;
+      border: 4px solid var(--accent-color);
+      box-shadow: var(--shadow-md);
+    }
+
+    .profile-info-and-stats {
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .profile-info {
+      margin-bottom: 15px;
+    }
+
+    .profile-name {
+      font-size: 1.8em;
+      color: var(--text-primary);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .profile-email {
+      color: var(--text-secondary);
+      margin-bottom: 15px;
+    }
+
+    .profile-details {
+      margin-top: 10px;
+    }
+
+    .profile-details p {
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-size: 0.95em;
+      line-height: 1.4;
+    }
+
+    .profile-stats {
+      display: flex;
+      justify-content: space-around;
+      gap: 15px;
+      margin-top: 0;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+      flex-grow: 1;
+      flex-basis: 0;
+    }
+
+    .stat-value {
+      font-size: 1.5em;
+      color: var(--accent-color);
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.8em;
+    }
+
+    .profile-section {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .section-title {
+      color: var(--text-primary);
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .application-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .application-card {
+      background: var(--bg-primary);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.3s ease;
+      border: 1px solid var(--border-color);
+    }
+
+    .application-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .application-title {
+      color: var(--text-primary);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .application-company {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      margin-bottom: 10px;
+    }
+
+    .application-status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 500;
+    }
+
+    .edit-profile-button {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+    }
+
+    .edit-profile-button:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+      .profile-container {
+        padding: 15px;
+      }
+
+      .profile-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-avatar {
+        width: 100px;
+        height: 100px;
+      }
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: var(--bg-primary);
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    .modal-content h2 {
+      color: var(--text-primary);
+      margin-bottom: 15px;
+    }
+
+    .modal-content p {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .modal-button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .modal-button.primary {
+      background-color: var(--accent-color);
+      color: white;
+    }
+
+    .modal-button.secondary {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .modal-button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+  </style>
 </head>
 <body>
+  <!-- Add modal HTML -->
+  <div id="authModal" class="modal">
+    <div class="modal-content">
+      <h2>Access Restricted</h2>
+      <p id="modalMessage">You need to be logged in as HR or Admin to add job opportunities.</p>
+      <div class="modal-buttons">
+        <button class="modal-button primary" onclick="window.location.href='/profile'">Go to Login</button>
+        <button class="modal-button secondary" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <header>
-    <img src="/images/logo.png" alt="JOB START KAREN Logo" style="height: 50px; margin-right: 10px;">
-    <h1><i class="fas fa-briefcase"></i> JOB START KAREN</h1>
+    <img src="/images/logo.png" alt="JOB START KAREN Logo">
+    <h1> JOB START KAREN</h1>
   </header>
 
-  <!-- Login/Signup Forms (shown when not logged in) -->
-  <div id="auth-forms" style="display: none;">
-    <div class="form-toggle">
-      <button id="toggle-login">Login</button>
-      <button id="toggle-signup">Sign Up</button>
-    </div>
-    <div id="login-form" style="display: block;">
-      <h2>Login</h2>
-      <form id="loginForm">
-        <select id="user-type" required>
-          <option value="admin">Admin</option>
-          <option value="hr">Company HR</option>
-          <option value="applicant">Applicant</option>
-        </select>
-        <input type="tel" id="mobile" placeholder="Mobile Number" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-      </form>
-    </div>
-    <div id="signup-form" style="display: none;">
-      <h2>Sign Up</h2>
-      <form id="signupForm">
-        <select id="signup-user-type" required>
-          <option value="hr">Company HR</option>
-          <option value="applicant">Applicant</option>
-        </select>
-        <input type="text" id="signup-name" placeholder="Full Name" required>
-        <input type="tel" id="signup-mobile" placeholder="Mobile Number" required>
-        <input type="password" id="signup-password" placeholder="Password" required>
-        <button type="submit">Sign Up</button>
-      </form>
-    </div>
-  </div>
+  <!-- Main content container -->
+  <div class="main-content-container">
 
-  <!-- User Profile (shown when logged in) -->
-  <div id="user-profile" style="display: none;">
-    <h2>Welcome, <span id="user-mobile"></span></h2>
-    <p>User Type: <span id="user-type-display"></span></p>
-    
-    <div id="user-info-form-container">
-      <h3>Your Information</h3>
-      <form id="user-info-form">
-        <input type="text" id="name" placeholder="Name" required>
-        <input type="number" id="age" placeholder="Age" required>
-        <input type="text" id="qualification" placeholder="Qualification" required>
-        <input type="text" id="address" placeholder="Address" required>
-        <button type="submit">Save Information</button>
-      </form>
-    </div>
-
-    <button id="logout-button" class="logout-btn">Logout</button>
-  </div>
-
-  <!-- Applicant's Applied Jobs Section (shown for applicants) -->
-  <div id="applicant-applications-section" style="display: none;">
-      <h3>Your Applications</h3>
-      <div id="applicant-applications-list">
-          <!-- Applicant's applied jobs will be listed here -->
+    <!-- Login/Signup Forms (shown when not logged in) -->
+    <div id="auth-forms" style="display: none;">
+      <div class="form-toggle">
+        <button id="toggle-login" class="active">Login</button> <!-- Added active class -->
+        <button id="toggle-signup">Sign Up</button>
       </div>
-  </div>
-
-  <!-- HR's Posted Jobs and Applicants Section (shown for HR) -->
-  <div id="hr-applications-section" style="display: none;">
-      <h3>Applicants for Your Posted Jobs</h3>
-      <div id="hr-applications-list">
-          <!-- HR's posted jobs and their applicants will be listed here -->
+      <div id="login-form" style="display: block;" class="auth-form-card card">
+        <h2>Login</h2>
+        <form id="loginForm">
+          <label for="user-type">User Type:</label>
+          <select id="user-type" required>
+            <option value="admin">Admin</option>
+            <option value="hr">Company HR</option>
+            <option value="applicant">Applicant</option>
+          </select>
+          <label for="mobile">Mobile Number:</label>
+          <input type="tel" id="mobile" placeholder="Mobile Number" required>
+          <label for="password">Password:</label>
+          <input type="password" id="password" placeholder="Password" required>
+          <button type="submit" class="btn btn-primary">Login</button>
+        </form>
       </div>
-  </div>
-
-  <!-- Admin's All Applications Section (shown for admins) -->
-  <div id="admin-applications-section" style="display: none;">
-      <h3>All Job Applications</h3>
-      <div id="admin-applications-list">
-          <!-- All job applications will be listed here -->
+      <div id="signup-form" style="display: none;" class="auth-form-card card">
+        <h2>Sign Up</h2>
+        <form id="signupForm">
+           <label for="signup-user-type">User Type:</label>
+          <select id="signup-user-type" required>
+            <option value="hr">Company HR</option>
+            <option value="applicant">Applicant</option>
+          </select>
+           <label for="signup-name">Full Name:</label>
+          <input type="text" id="signup-name" placeholder="Full Name" required>
+           <label for="signup-mobile">Mobile Number:</label>
+          <input type="tel" id="signup-mobile" placeholder="Mobile Number" required>
+           <label for="signup-password">Password:</label>
+          <input type="password" id="signup-password" placeholder="Password" required>
+          <button type="submit" class="btn btn-primary">Sign Up</button>
+        </form>
       </div>
+    </div>
+
+    <!-- User Profile (shown when logged in) -->
+    <div id="user-profile" style="display: none;">
+      <div class="profile-container">
+        <div class="profile-header card">
+           <div class="profile-header-main">
+              <img src="/images/default-avatar.png" alt="Profile Picture" class="profile-avatar" id="profile-avatar">
+              <div class="profile-info-and-stats">
+                  <div class="profile-info">
+                      <h2 class="profile-name" id="profile-name">Loading...</h2>
+                      <p class="profile-email" id="profile-email">Loading...</p>
+                       <!-- Personal details like mobile and user type -->
+                       <div class="profile-details">
+                           <p><strong>Mobile:</strong> <span id="user-mobile">Loading...</span></p>
+                           <p><strong>User Type:</strong> <span id="user-type-display">Loading...</span></p>
+                       </div>
+                  </div>
+
+                  <div class="profile-stats">
+                    <div class="stat-item card">
+                      <div class="stat-value" id="applications-count">0</div>
+                      <div class="stat-label">Applications</div>
+                    </div>
+                    <div class="stat-item card">
+                      <div class="stat-value" id="saved-jobs-count">0</div>
+                      <div class="stat-label">Saved Jobs</div>
+                    </div>
+                    <div class="stat-item card">
+                      <div class="stat-value" id="interviews-count">0</div>
+                      <div class="stat-label">Interviews</div>
+                    </div>
+                  </div>
+              </div>
+           </div>
+
+          <button class="edit-profile-button btn btn-primary" id="edit-profile-button">Edit Profile</button>
+        </div>
+
+        <!-- Applicant's Applied Jobs Section (shown for applicants) -->
+        <div id="applicant-applications-section" class="profile-section card" style="display: none;">
+          <h3 class="section-title">Your Applications</h3>
+          <div id="applicant-applications-list" class="application-list">
+            <!-- Applications will be loaded here -->
+          </div>
+        </div>
+
+        <!-- HR's Posted Jobs and Applicants Section (shown for HR) -->
+        <div id="hr-applications-section" class="profile-section card" style="display: none;">
+          <h3 class="section-title">Applicants for Your Posted Jobs</h3>
+          <div id="hr-applications-list" class="application-list">
+            <!-- HR's posted jobs and their applicants will be listed here -->
+          </div>
+        </div>
+
+        <!-- Admin's All Applications Section (shown for admins) -->
+        <div id="admin-applications-section" class="profile-section card" style="display: none;">
+          <h3 class="section-title">All Job Applications</h3>
+          <div id="admin-applications-list" class="application-list">
+            <!-- All job applications will be loaded here -->
+          </div>
+        </div>
+      </div>
+
+      <button id="logout-button" class="logout-btn btn btn-secondary">Logout</button>
+    </div>
+
   </div>
 
   <nav class="bottom-nav">
     <a href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Home</a>
-    <a href="/jobs/add" id="add-opportunity-link" class="restricted-link"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Opportunity</a>
-    <a href="/contact"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Contact Us</a>
+    <a href="/contact"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Contact</a>
+    <a href="/jobs/add" id="add-opportunity-link" class="restricted-link"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add</a>
     <a href="/share"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Share</a>
-    <a href="/profile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile</a>
+    <a href="/profile" class="active"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile</a>
   </nav>
 
   <style>
@@ -156,247 +838,363 @@
 
     /* Basic styles for application lists */
     .application-item, .job-applicants {
-        border: 1px solid #ddd;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 8px;
-        background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      background-color: #f9f9f9;
     }
 
     .job-applicants h4 {
-        margin-top: 0;
-        margin-bottom: 10px;
-        color: #333;
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #333;
     }
 
     .applicant-detail {
-        margin-bottom: 5px;
-        color: #555;
+      margin-bottom: 5px;
+      color: #555;
     }
+
+    /* Enhanced styles for profile page */
+    .main-content-container {
+      max-width: 800px; /* Same max-width as .profile-container */
+      margin: 0 auto; /* Center the container */
+      padding: 20px; /* Add padding */
+      padding-top: calc(var(--nav-height) + 20px); /* Space below fixed header */
+      padding-bottom: calc(var(--bottom-nav-height) + 20px); /* Space above fixed bottom nav */
+    }
+
+    #auth-forms {
+      margin-top: 20px; /* Space below header padding */
+      background-color: var(--card-bg); /* Use card background */
+      padding: 30px; /* Increase padding */
+      border-radius: 8px; /* Rounded corners */
+      box-shadow: var(--shadow-md); /* Add shadow */
+      border: 1px solid var(--border-color); /* Add border */
+      max-width: 400px; /* Limit width for forms */
+      margin-left: auto; /* Center the forms */
+      margin-right: auto; /* Center the forms */
+    }
+
+    .form-toggle {
+      display: flex;
+      margin-bottom: 20px; /* Space below toggle buttons */
+    }
+
+    .form-toggle button {
+      flex-grow: 1; /* Make buttons take equal width */
+      padding: 10px; /* Padding for buttons */
+      border: 1px solid var(--border-color); /* Border */
+      background-color: var(--bg-secondary); /* Secondary background */
+      color: var(--text-secondary); /* Secondary text color */
+      cursor: pointer;
+      transition: all 0.3s ease;
+       /* Remove default button styles */
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+       outline: none;
+    }
+
+    .form-toggle button:first-child {
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+       border-right: none; /* Remove border between buttons */
+    }
+
+    .form-toggle button:last-child {
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+
+    .form-toggle button.active {
+      background-color: var(--accent-color); /* Accent color for active button */
+      color: white; /* White text for active button */
+      border-color: var(--accent-color); /* Accent color border for active */
+       z-index: 1; /* Bring active button to front */
+    }
+     .form-toggle button:hover:not(.active) {
+         background-color: var(--border-color); /* Slight background change on hover */
+     }
+
+    .auth-form-card h2 {
+      text-align: center;
+      color: var(--text-primary);
+      margin-bottom: 20px; /* Space below form title */
+    }
+
+    #auth-forms form label {
+       display: block;
+       margin-bottom: 5px;
+       color: var(--text-secondary);
+       font-weight: 500;
+       font-size: 0.9em;
+    }
+
+    #auth-forms form input[type="tel"],
+    #auth-forms form input[type="password"],
+     #auth-forms form input[type="text"],
+     #auth-forms form select
+     {
+      margin-bottom: 15px; /* Space below each input */
+      padding: 10px; /* Increase padding */
+      border-radius: 4px; /* Consistent border radius */
+       border: 1px solid var(--border-color);
+       background-color: var(--bg-primary);
+       color: var(--text-primary);
+       font-size: 1em;
+    }
+
+    #auth-forms form button[type="submit"] {
+      width: 100%; /* Full width button */
+       padding: 12px; /* Increase padding */
+       font-size: 1.1em;
+       border-radius: 4px; /* Consistent border radius */
+    }
+
+    #user-profile {
+       margin-top: 20px; /* Space below header padding */
+    }
+
+    .profile-container {
+      /* Keep existing profile-container styles for internal layout */
+      max-width: 800px; /* Redundant with main-content-container but keep for clarity */
+      margin: 0 auto; /* Redundant */
+      padding: 0; /* Remove padding here as it's on main-content-container */
+    }
+
+    .profile-header {
+      /* Keep existing profile-header styles */
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      text-align: left;
+       border: 1px solid var(--border-color);
+    }
+
+    .profile-header-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 30px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 0;
+      flex-shrink: 0;
+      object-fit: cover;
+      border: 4px solid var(--accent-color);
+      box-shadow: var(--shadow-md);
+    }
+
+    .profile-info-and-stats {
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .profile-info {
+      margin-bottom: 15px;
+    }
+
+    .profile-name {
+      font-size: 1.8em;
+      color: var(--text-primary);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .profile-email {
+      color: var(--text-secondary);
+      margin-bottom: 15px;
+    }
+
+    .profile-details {
+      margin-top: 10px;
+    }
+
+    .profile-details p {
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-size: 0.95em;
+      line-height: 1.4;
+    }
+
+    .profile-stats {
+      display: flex;
+      justify-content: space-around;
+      gap: 15px;
+      margin-top: 0;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+      flex-grow: 1;
+      flex-basis: 0;
+    }
+
+    .stat-value {
+      font-size: 1.5em;
+      color: var(--accent-color);
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.8em;
+    }
+
+    .profile-section {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .section-title {
+      color: var(--text-primary);
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .application-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .application-card {
+      background: var(--bg-primary);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.3s ease;
+      border: 1px solid var(--border-color);
+    }
+
+    .application-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .application-title {
+      color: var(--text-primary);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .application-company {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      margin-bottom: 10px;
+    }
+
+    .application-status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 500;
+    }
+
+    .logout-btn {
+      display: block;
+      width: auto;
+      margin: 20px auto;
+      text-align: center;
+      padding: 10px 20px;
+    }
+
+    /* Add responsive adjustments */
+    @media (max-width: 600px) {
+        #auth-forms {
+            padding: 20px;
+        }
+
+         .profile-header,
+         .profile-section,
+         .stat-item,
+         .application-card {
+             padding: 15px;
+         }
+
+        .profile-avatar {
+             width: 100px;
+             height: 100px;
+        }
+
+        .profile-name {
+             font-size: 1.5em;
+        }
+
+        .profile-stats {
+             grid-template-columns: 1fr;
+             gap: 10px;
+        }
+
+        .form-toggle button {
+             font-size: 0.9em;
+        }
+
+         #auth-forms form input[type="tel"],
+         #auth-forms form input[type="password"],
+          #auth-forms form input[type="text"],
+          #auth-forms form select {
+             font-size: 0.9em;
+             padding: 8px;
+         }
+
+        #auth-forms form button[type="submit"] {
+             font-size: 1em;
+             padding: 10px;
+        }
+    }
+
+     @media (max-width: 400px) {
+         .main-content-container {
+             padding: 10px;
+             padding-top: calc(var(--nav-height) + 10px);
+             padding-bottom: calc(var(--bottom-nav-height) + 10px);
+         }
+         #auth-forms {
+             padding: 15px;
+         }
+          .profile-header,
+          .profile-section,
+          .stat-item,
+          .application-card {
+              padding: 10px;
+          }
+
+         .profile-avatar {
+             width: 80px;
+             height: 80px;
+         }
+
+         .profile-name {
+             font-size: 1.3em;
+         }
+
+         .stat-value {
+             font-size: 1.3em;
+         }
+     }
+
   </style>
-
-  <script>
-    // Function to fetch and display applications
-    async function fetchApplications(userType) {
-        try {
-            const response = await fetch('/auth/applications', { credentials: 'include' });
-            if (!response.ok) {
-                throw new Error('Failed to fetch applications');
-            }
-            const applications = await response.json();
-
-            if (userType === 'applicant') {
-                displayApplicantApplications(applications);
-            } else if (userType === 'hr') {
-                displayHRApplications(applications);
-            } else if (userType === 'admin') {
-                displayAdminApplications(applications);
-            }
-
-        } catch (error) {
-            console.error('Error fetching applications:', error);
-            // Display an error message in the appropriate section
-            if (userType === 'applicant') {
-                document.getElementById('applicant-applications-list').innerHTML = '<p>Error loading your applications.</p>';
-                document.getElementById('applicant-applications-section').style.display = 'block';
-            } else if (userType === 'hr') {
-                document.getElementById('hr-applications-list').innerHTML = '<p>Error loading applicant data.</p>';
-                document.getElementById('hr-applications-section').style.display = 'block';
-            } else if (userType === 'admin') {
-                document.getElementById('admin-applications-list').innerHTML = '<p>Error loading application data.</p>';
-                document.getElementById('admin-applications-section').style.display = 'block';
-            }
-        }
-    }
-
-    // Function to display applications for an applicant
-    function displayApplicantApplications(applications) {
-        const applicationsListDiv = document.getElementById('applicant-applications-list');
-        applicationsListDiv.innerHTML = ''; // Clear previous content
-        
-        if (applications.length === 0) {
-            applicationsListDiv.innerHTML = '<p>You have not applied for any jobs yet.</p>';
-        } else {
-            applications.forEach(application => { // Iterate through applications directly
-                // const application = job.applicants[0]; // Remove this, no longer needed
-                
-                // Access job details from the populated jobId
-                const jobTitle = application.jobId ? application.jobId.title : 'N/A';
-                const companyName = application.jobId ? application.jobId.companyName : 'N/A';
-
-                const applicationItem = `
-                    <div class="application-item">
-                        <h4>${jobTitle} at ${companyName}</h4>
-                        <p class="applicant-detail"><strong>Status:</strong> ${application.status}</p>
-                        <!-- Applicant's own details are not part of this data structure anymore, 
-                             they are in the user's main profile info -->
-                    </div>
-                `;
-                applicationsListDiv.innerHTML += applicationItem;
-            });
-        }
-        document.getElementById('applicant-applications-section').style.display = 'block';
-    }
-
-    // Function to display applications for HR
-    function displayHRApplications(jobs) {
-        const applicationsListDiv = document.getElementById('hr-applications-list');
-        applicationsListDiv.innerHTML = ''; // Clear previous content
-
-        if (jobs.length === 0) {
-            applicationsListDiv.innerHTML = '<p>You have not posted any jobs yet, or no one has applied.</p>';
-        } else {
-            jobs.forEach(job => {
-                const jobApplicantsHtml = `
-                    <div class="job-applicants">
-                        <h4>Applicants for "${job.title || 'N/A'}" at ${job.companyName || 'N/A'}</h4>
-                        ${job.applicants.length > 0 ?
-                           job.applicants.map(applicantEntry => { // applicantEntry now contains user reference and status
-                               const applicant = applicantEntry.user; // Get populated user object
-                               return `
-                                <div class="applicant-detail-item">
-                                    <p><strong>Applicant Name:</strong> ${applicant.name || 'N/A'}</p>
-                                    <p><strong>Status:</strong> ${applicantEntry.status}</p>
-                                    <p><strong>Phone:</strong> ${applicant.mobile || 'N/A'}</p>
-                                    <p><strong>Education:</strong> ${applicant.education || 'N/A'}</p>
-                                    <hr>
-                                </div>
-                           `;
-                           }).join('')
-                           : '<p>No applicants for this job yet.</p>'
-                        }
-                    </div>
-                `;
-                applicationsListDiv.innerHTML += jobApplicantsHtml;
-            });
-        }
-        document.getElementById('hr-applications-section').style.display = 'block';
-    }
-
-    // Function to display applications for Admin
-    function displayAdminApplications(jobs) {
-        const applicationsListDiv = document.getElementById('admin-applications-list');
-        applicationsListDiv.innerHTML = ''; // Clear previous content
-
-        if (jobs.length === 0) {
-            applicationsListDiv.innerHTML = '<p>No jobs or applications found in the system.</p>';
-        } else {
-            jobs.forEach(job => {
-                 const jobApplicantsHtml = `
-                    <div class="job-applicants">
-                        <h4>Applications for "${job.title || 'N/A'}" at ${job.companyName || 'N/A'}</h4>
-                         ${job.applicants.length > 0 ?
-                           job.applicants.map(applicantEntry => { // applicantEntry now contains user reference and status
-                               const applicant = applicantEntry.user; // Get populated user object
-                               return `
-                                <div class="applicant-detail-item">
-                                    <p><strong>User Type:</strong> Applicant (Implicit)</p> <!-- User type is always applicant for applications -->
-                                    <p><strong>Applicant Name:</strong> ${applicant.name || 'N/A'}</p>
-                                    <p><strong>Status:</strong> ${applicantEntry.status}</p>
-                                    <p><strong>Phone:</strong> ${applicant.mobile || 'N/A'}</p>
-                                    <p><strong>Education:</strong> ${applicant.education || 'N/A'}</p>
-                                    <hr>
-                                </div>
-                           `;
-                           }).join('')
-                           : '<p>No applicants for this job yet.</p>'
-                        }
-                    </div>
-                `;
-                applicationsListDiv.innerHTML += jobApplicantsHtml;
-            });
-        }
-        document.getElementById('admin-applications-section').style.display = 'block';
-    }
-
-    // Login form handling
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const userType = document.getElementById('user-type').value;
-      const mobile = document.getElementById('mobile').value;
-      const password = document.getElementById('password').value;
-
-      try {
-        const response = await fetch('/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ userType, mobile, password })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          alert(data.message || 'Login failed');
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Login failed');
-      }
-    });
-
-    // Signup form handling
-    document.getElementById('signupForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const userType = document.getElementById('signup-user-type').value;
-      const mobile = document.getElementById('signup-mobile').value;
-      const password = document.getElementById('signup-password').value;
-      const name = document.getElementById('signup-name').value;
-
-      try {
-        const response = await fetch('/auth/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ userType, mobile, password, name })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-          alert('Signup successful! Please login.');
-          document.getElementById('toggle-login').click();
-        } else {
-          alert(data.message || 'Signup failed');
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Signup failed');
-      }
-    });
-
-    // Logout handling
-    document.getElementById('logout-button').addEventListener('click', async () => {
-      try {
-        const response = await fetch('/auth/logout', {
-          method: 'POST'
-        });
-
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          alert('Logout failed');
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Logout failed');
-      }
-    });
-
-    // Toggle between login and signup forms
-    document.getElementById('toggle-login').addEventListener('click', () => {
-      document.getElementById('login-form').style.display = 'block';
-      document.getElementById('signup-form').style.display = 'none';
-    });
-
-    document.getElementById('toggle-signup').addEventListener('click', () => {
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('signup-form').style.display = 'block';
-    });
-  </script>
 </body>
 </html> 
