@@ -775,7 +775,7 @@
       <div class="profile-container">
         <div class="profile-header card">
            <div class="profile-header-main">
-              <img src="/images/default-avatar.png" alt="Profile Picture" class="profile-avatar" id="profile-avatar">
+              <img src="" alt="Profile Picture" class="profile-avatar" id="profile-avatar">
               <div class="profile-info-and-stats">
                   <div class="profile-info">
                       <h2 class="profile-name" id="profile-name">Loading...</h2>
@@ -784,6 +784,9 @@
                        <div class="profile-details">
                            <p><strong>Mobile:</strong> <span id="user-mobile">Loading...</span></p>
                            <p><strong>User Type:</strong> <span id="user-type-display">Loading...</span></p>
+                           <p><strong>Address:</strong> <span id="profile-address">Loading...</span></p>
+                           <p><strong>Education:</strong> <span id="profile-education">Loading...</span></p>
+                           <p><strong>Experience:</strong> <span id="profile-experience">Loading...</span></p>
                        </div>
                   </div>
 
@@ -835,6 +838,37 @@
       <button id="logout-button" class="logout-btn btn btn-secondary">Logout</button>
     </div>
 
+  </div>
+
+  <!-- Profile Edit Form (hidden by default) -->
+  <div class="profile-container" id="edit-profile-container" style="display:none;">
+    <div class="profile-header">
+      <form id="edit-profile-form" enctype="multipart/form-data">
+        <h2>Edit Profile</h2>
+        <div class="form-group">
+          <label for="edit-name">Name</label>
+          <input type="text" id="edit-name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-address">Address</label>
+          <input type="text" id="edit-address" name="address">
+        </div>
+        <div class="form-group">
+          <label for="edit-education">Education</label>
+          <input type="text" id="edit-education" name="education">
+        </div>
+        <div class="form-group">
+          <label for="edit-experience">Experience</label>
+          <input type="text" id="edit-experience" name="experience">
+        </div>
+        <div class="form-group">
+          <label for="edit-profile-photo">Profile Photo</label>
+          <input type="file" id="edit-profile-photo" name="profilePhoto" accept="image/*">
+        </div>
+        <button type="submit" class="edit-profile-button">Save Changes</button>
+        <button type="button" class="edit-profile-button" id="cancel-edit-profile" style="background:#888; margin-left:10px;">Cancel</button>
+      </form>
+    </div>
   </div>
 
   <nav class="bottom-nav">
@@ -1218,5 +1252,81 @@
      }
 
   </style>
+
+  <script>
+  // --- Profile Edit/Display Logic ---
+  let currentProfileData = {};
+
+  function showProfileDisplay() {
+    document.getElementById('user-profile').style.display = 'block';
+    document.getElementById('edit-profile-container').style.display = 'none';
+  }
+  function showProfileEdit() {
+    document.getElementById('user-profile').style.display = 'none';
+    document.getElementById('edit-profile-container').style.display = 'block';
+  }
+
+  // Populate profile display and edit form
+  async function populateProfile() {
+    const response = await fetch('/auth/check-session');
+    const data = await response.json();
+    if (!data.isLoggedIn) return;
+    currentProfileData = data;
+    // Display section
+    document.getElementById('profile-name').textContent = data.name || '';
+    document.getElementById('user-mobile').textContent = data.mobile || '';
+    document.getElementById('user-type-display').textContent = data.userType || '';
+    document.getElementById('profile-address').textContent = data.address || '';
+    document.getElementById('profile-education').textContent = data.education || '';
+    document.getElementById('profile-experience').textContent = data.experience || '';
+    const defaultSvg = 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="%23bbb" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>';
+    document.getElementById('profile-avatar').src = data.profilePhoto || defaultSvg;
+    // Edit form
+    document.getElementById('edit-name').value = data.name || '';
+    document.getElementById('edit-address').value = data.address || '';
+    document.getElementById('edit-education').value = data.education || '';
+    document.getElementById('edit-experience').value = data.experience || '';
+  }
+
+  // Show edit form on button click
+  if (document.getElementById('edit-profile-button')) {
+    document.getElementById('edit-profile-button').addEventListener('click', function() {
+      populateProfile();
+      showProfileEdit();
+    });
+  }
+  // Cancel edit
+  if (document.getElementById('cancel-edit-profile')) {
+    document.getElementById('cancel-edit-profile').addEventListener('click', function() {
+      showProfileDisplay();
+    });
+  }
+  // Handle form submit
+  if (document.getElementById('edit-profile-form')) {
+    document.getElementById('edit-profile-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      try {
+        const response = await fetch('/auth/profile', {
+          method: 'PUT',
+          body: formData
+        });
+        const result = await response.json();
+        if (response.ok) {
+          alert('Profile updated successfully!');
+          await populateProfile();
+          showProfileDisplay();
+        } else {
+          alert(result.message || 'Failed to update profile');
+        }
+      } catch (err) {
+        alert('Error updating profile');
+      }
+    });
+  }
+  // Populate on load
+  window.addEventListener('DOMContentLoaded', populateProfile);
+  </script>
 </body>
 </html> 

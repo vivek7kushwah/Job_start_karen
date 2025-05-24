@@ -19,6 +19,9 @@ const userSchema = new mongoose.Schema({
     required: false,
     trim: true
   },
+  profilePhoto: { type: String, required: false },
+  education: { type: String, required: false },
+  experience: { type: String, required: false },
   applications: [{
     jobId: {
       type: mongoose.Schema.Types.ObjectId,
