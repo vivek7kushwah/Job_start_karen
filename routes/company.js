@@ -45,6 +45,9 @@ router.put('/', checkAdmin, upload.fields([
     { name: 'companyLogo', maxCount: 1 },
     { name: 'founderImages', maxCount: 5 }
 ]), async (req, res) => {
+    console.log('Received PUT /company request');
+    console.log('req.body:', req.body);
+    console.log('req.files:', req.files);
     try {
         const {
             name,

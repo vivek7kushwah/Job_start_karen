@@ -507,7 +507,7 @@
                 <div id="founders-form">
                     <!-- Founder forms will be added here -->
                 </div>
-                <button type="button" class="edit-button" onclick="addFounderForm()" style="margin-bottom: 20px;">
+                <button type="button" class="edit-button" onclick="handleAddNewFounder()" style="margin-bottom: 20px;">
                     <i class="fas fa-plus"></i> Add Founder
                 </button>
 
@@ -640,11 +640,11 @@
             // Populate founders
             const foundersForm = document.getElementById('founders-form');
             foundersForm.innerHTML = '';
-            company.founders.forEach(founder => addFounderForm(founder));
+            company.founders.forEach((founder, index) => addFounderForm(founder, index));
         }
 
         // Add a new founder form
-        function addFounderForm(founder = null) {
+        function addFounderForm(founder = null, index) {
             const foundersForm = document.getElementById('founders-form');
             const founderDiv = document.createElement('div');
             founderDiv.className = 'founder-form';
@@ -662,15 +662,21 @@
                     <textarea class="founder-bio">${founder ? founder.bio : ''}</textarea>
                 </div>
                 <div class="form-group">
-                    <label>Image</label>
-                    <input type="file" class="founder-image" accept="image/*">
-                    ${founder && founder.image ? `<p>Current image: ${founder.image}</p>` : ''}
+                    <label for="founder-image-${index}">Image (Optional):</label>
+                    <input type="file" id="founder-image-${index}" class="founder-image-input" name="founderImages" accept="image/*">
                 </div>
                 <button type="button" class="edit-button" onclick="this.parentElement.remove()">
                     <i class="fas fa-trash"></i> Remove Founder
                 </button>
             `;
             foundersForm.appendChild(founderDiv);
+        }
+
+        // Function to handle adding a new founder via the button
+        function handleAddNewFounder() {
+            const foundersForm = document.getElementById('founders-form');
+            const currentIndex = foundersForm.querySelectorAll('.founder-form').length;
+            addFounderForm(null, currentIndex);
         }
 
         // Handle form submission
@@ -708,9 +714,9 @@
                 founders.push(founder);
 
                 // Add founder image if selected
-                const imageInput = form.querySelector('.founder-image');
+                const imageInput = form.querySelector('.founder-image-input');
                 if (imageInput.files[0]) {
-                    formData.append(`founderImages[${index}]`, imageInput.files[0]);
+                    formData.append('founderImages', imageInput.files[0]);
                 }
             });
 
