@@ -10,6 +10,10 @@ const companySchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    logo: {
+        type: String,
+        default: 'company-logo.png'
+    },
     founders: [{
         name: {
             type: String,

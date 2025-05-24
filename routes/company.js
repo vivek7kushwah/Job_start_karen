@@ -7,10 +7,17 @@ const path = require('path');
 // Configure multer for image uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/uploads/founders/');
+        // Determine the destination based on the field name
+        if (file.fieldname === 'companyLogo') {
+            cb(null, 'public/uploads/');
+        } else {
+            cb(null, 'public/uploads/founders/');
+        }
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname));
+        // Generate unique filename
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
     }
 });
 
@@ -48,7 +55,10 @@ router.get('/', async (req, res) => {
 });
 
 // Update company information (admin only)
-router.put('/', checkAdmin, upload.array('founderImages', 5), async (req, res) => {
+router.put('/', checkAdmin, upload.fields([
+    { name: 'companyLogo', maxCount: 1 },
+    { name: 'founderImages', maxCount: 5 }
+]), async (req, res) => {
     try {
         const {
             name,
@@ -63,9 +73,16 @@ router.put('/', checkAdmin, upload.array('founderImages', 5), async (req, res) =
         const parsedContactInfo = JSON.parse(contactInfo);
         const parsedSocialMedia = JSON.parse(socialMedia);
 
+        // Handle company logo upload
+        let logoFilename = null;
+        if (req.files && req.files.companyLogo && req.files.companyLogo[0]) {
+            logoFilename = req.files.companyLogo[0].filename;
+        }
+
         // Update founder images if uploaded
-        if (req.files && req.files.length > 0) {
-            req.files.forEach((file, index) => {
+        if (req.files && req.files.founderImages && req.files.founderImages.length > 0) {
+            req.files.founderImages.forEach((file, index) => {
+                // Ensure the founder object exists at this index before assigning the image
                 if (parsedFounders[index]) {
                     parsedFounders[index].image = file.filename;
                 }
@@ -84,6 +101,10 @@ router.put('/', checkAdmin, upload.array('founderImages', 5), async (req, res) =
                 lastUpdatedBy: req.session.user.mobile,
                 lastUpdatedAt: new Date()
             });
+            // Update logo if new one was uploaded
+            if (logoFilename) {
+                company.logo = logoFilename;
+            }
             await company.save();
         } else {
             // Create new company info
@@ -93,7 +114,8 @@ router.put('/', checkAdmin, upload.array('founderImages', 5), async (req, res) =
                 founders: parsedFounders,
                 contactInfo: parsedContactInfo,
                 socialMedia: parsedSocialMedia,
-                lastUpdatedBy: req.session.user.mobile
+                lastUpdatedBy: req.session.user.mobile,
+                logo: logoFilename || 'company-logo.png'
             });
             await newCompany.save();
         }

@@ -11,8 +11,8 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ userType, mobile });
     console.log('User found:', user);
     if (user && await bcrypt.compare(password, user.password)) {
-      req.session.user = { userType, mobile };
-      res.status(200).json({ message: 'Login successful', userType });
+      req.session.user = { userType, mobile, name: user.name };
+      res.status(200).json({ message: 'Login successful', userType, name: user.name });
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -49,13 +49,24 @@ router.post('/logout', (req, res) => {
 });
 
 // Add this new route to check session status
-router.get('/check-session', (req, res) => {
+router.get('/check-session', async (req, res) => {
   if (req.session.user) {
-    res.json({
-      isLoggedIn: true,
-      userType: req.session.user.userType,
-      mobile: req.session.user.mobile
-    });
+    try {
+      const user = await User.findOne({ mobile: req.session.user.mobile });
+      res.json({
+        isLoggedIn: true,
+        userType: req.session.user.userType,
+        mobile: req.session.user.mobile,
+        name: user ? user.name : null
+      });
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      res.json({
+        isLoggedIn: true,
+        userType: req.session.user.userType,
+        mobile: req.session.user.mobile
+      });
+    }
   } else {
     res.json({
       isLoggedIn: false

@@ -18,6 +18,10 @@ document.getElementById('login-form').addEventListener('submit', async function(
       alert(data.message);
       document.getElementById('login-form').style.display = 'none';
       document.getElementById('user-info').style.display = 'block';
+      const userNameElement = document.getElementById('user-name');
+      if (userNameElement && data.name) {
+        userNameElement.textContent = `Welcome, ${data.name}!`;
+      }
     } else {
       alert(data.message);
     }

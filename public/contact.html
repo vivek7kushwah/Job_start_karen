@@ -404,12 +404,14 @@
     </div>
 
     <header>
-        <img src="/images/logo.png" alt="JOB START KAREN Logo">
+        <img src="/images/logo.png" alt="JOB START KAREN Logo" style="height: 40px; margin-right: 10px;">
         <h1> JOB START KAREN</h1>
+        <img id="site-company-logo" src="" alt="Company Logo" style="height: 40px; margin-left: 10px; display: none;">
     </header>
 
     <div class="contact-container">
         <div class="company-header">
+            <img id="company-logo" src="/uploads/company-logo.png" alt="Company Logo" style="max-width: 200px; margin-bottom: 20px;">
             <h1 id="company-name">Loading...</h1>
             <p class="company-description" id="company-description">Loading company description...</p>
         </div>
@@ -473,6 +475,12 @@
                     <label for="edit-email">Email</label>
                     <input type="email" id="edit-email" required>
                 </div>
+                <div class="form-group">
+                    <label for="edit-logo">Company Logo</label>
+                    <input type="file" id="edit-logo" accept="image/*">
+                    <small>Recommended size: 200x200 pixels</small>
+                    <p id="current-logo-filename"></p>
+                </div>
 
                 <h4>Social Media Links</h4>
                 <div class="form-group">
@@ -495,6 +503,14 @@
                     <label for="edit-whatsapp">WhatsApp Group Link</label>
                     <input type="url" id="edit-whatsapp">
                 </div>
+
+                <h4>Founders</h4>
+                <div id="founders-form">
+                    <!-- Founder forms will be added here -->
+                </div>
+                <button type="button" class="edit-button" onclick="addFounderForm()" style="margin-bottom: 20px;">
+                    <i class="fas fa-plus"></i> Add Founder
+                </button>
 
                 <button type="submit" class="save-button">Save Changes</button>
             </form>
@@ -532,6 +548,21 @@
                 // Update company header
                 document.getElementById('company-name').textContent = company.name;
                 document.getElementById('company-description').textContent = company.description;
+                
+                // Update logo in admin form section
+                const adminLogoImg = document.getElementById('company-logo');
+                if (adminLogoImg && company.logo) {
+                    adminLogoImg.src = `/uploads/${company.logo}`;
+                }
+
+                // Update logo in site header
+                const siteLogoImg = document.getElementById('site-company-logo');
+                if (siteLogoImg && company.logo) {
+                    siteLogoImg.src = `/uploads/${company.logo}`;
+                    siteLogoImg.style.display = 'inline-block'; // Show the logo
+                } else if (siteLogoImg) {
+                    siteLogoImg.style.display = 'none'; // Hide if no logo
+                }
 
                 // Update founders
                 const foundersGrid = document.getElementById('founders-grid');
@@ -592,6 +623,15 @@
             document.getElementById('edit-address').value = company.contactInfo.address;
             document.getElementById('edit-phone').value = company.contactInfo.phone;
             document.getElementById('edit-email').value = company.contactInfo.email;
+            
+            // Display current logo filename
+            const currentLogoFilenameElement = document.getElementById('current-logo-filename');
+            if (currentLogoFilenameElement && company.logo) {
+                currentLogoFilenameElement.textContent = `Current logo: ${company.logo}`;
+            } else if (currentLogoFilenameElement) {
+                currentLogoFilenameElement.textContent = '';
+            }
+
             document.getElementById('edit-facebook').value = company.socialMedia.facebook || '';
             document.getElementById('edit-twitter').value = company.socialMedia.twitter || '';
             document.getElementById('edit-linkedin').value = company.socialMedia.linkedin || '';
@@ -625,8 +665,11 @@
                 <div class="form-group">
                     <label>Image</label>
                     <input type="file" class="founder-image" accept="image/*">
+                    ${founder && founder.image ? `<p>Current image: ${founder.image}</p>` : ''}
                 </div>
-                <button type="button" class="edit-button" onclick="this.parentElement.remove()">Remove Founder</button>
+                <button type="button" class="edit-button" onclick="this.parentElement.remove()">
+                    <i class="fas fa-trash"></i> Remove Founder
+                </button>
             `;
             foundersForm.appendChild(founderDiv);
         }
@@ -641,6 +684,13 @@
             formData.append('address', document.getElementById('edit-address').value);
             formData.append('phone', document.getElementById('edit-phone').value);
             formData.append('email', document.getElementById('edit-email').value);
+            
+            // Add company logo if selected
+            const logoInput = document.getElementById('edit-logo');
+            if (logoInput.files[0]) {
+                formData.append('companyLogo', logoInput.files[0]);
+            }
+            
             formData.append('facebook', document.getElementById('edit-facebook').value);
             formData.append('twitter', document.getElementById('edit-twitter').value);
             formData.append('linkedin', document.getElementById('edit-linkedin').value);
@@ -661,7 +711,7 @@
                 // Add founder image if selected
                 const imageInput = form.querySelector('.founder-image');
                 if (imageInput.files[0]) {
-                    formData.append('founderImages', imageInput.files[0]);
+                    formData.append(`founderImages[${index}]`, imageInput.files[0]);
                 }
             });
 
