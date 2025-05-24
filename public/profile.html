@@ -435,6 +435,28 @@
     // Logout handling (moved inside DOMContentLoaded listener)
     // Toggle between login and signup forms (moved inside DOMContentLoaded listener)
 
+    // Function to load company logo in the header
+    async function loadHeaderLogo() {
+      try {
+        const response = await fetch('/company/');
+        const company = await response.json();
+        const siteLogoImg = document.getElementById('site-company-logo');
+        if (siteLogoImg && company.logo) {
+          siteLogoImg.src = company.logo; // Use Cloudinary URL
+          siteLogoImg.style.display = 'inline-block'; // Show the logo
+        } else if (siteLogoImg) {
+          siteLogoImg.style.display = 'none'; // Hide if no logo
+        }
+      } catch (error) {
+        console.error('Error loading header logo:', error);
+         const siteLogoImg = document.getElementById('site-company-logo');
+         if (siteLogoImg) siteLogoImg.style.display = 'none'; // Hide on error
+      }
+    }
+    
+    // Call the function to load the header logo when the DOM is loaded
+    document.addEventListener('DOMContentLoaded', loadHeaderLogo);
+
   </script>
   <style>
     .profile-container {
@@ -700,7 +722,7 @@
   </div>
 
   <header>
-    <img src="/images/logo.png" alt="JOB START KAREN Logo">
+    <img id="site-company-logo" src="" alt="Company Logo" style="height: 40px; margin-right: 10px;">
     <h1> JOB START KAREN</h1>
   </header>
 

@@ -331,7 +331,7 @@
 </head>
 <body>
     <header>
-        <img src="/images/logo.png" alt="JOB START KAREN Logo">
+        <img id="site-company-logo" src="" alt="Company Logo" style="height: 40px; margin-right: 10px;">
         <h1> JOB START KAREN</h1>
     </header>
 
@@ -474,11 +474,33 @@
     </nav>
 
     <script>
+        // Function to load company logo in the header
+        async function loadHeaderLogo() {
+            try {
+                const response = await fetch('/company/');
+                const company = await response.json();
+                const siteLogoImg = document.getElementById('site-company-logo');
+                if (siteLogoImg && company.logo) {
+                    siteLogoImg.src = company.logo; // Use Cloudinary URL
+                    siteLogoImg.style.display = 'inline-block'; // Show the logo
+                } else if (siteLogoImg) {
+                    siteLogoImg.style.display = 'none'; // Hide if no logo
+                }
+            } catch (error) {
+                console.error('Error loading header logo:', error);
+                const siteLogoImg = document.getElementById('site-company-logo');
+                 if (siteLogoImg) siteLogoImg.style.display = 'none'; // Hide on error
+            }
+        }
+        
+        // Call the function to load the header logo when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', loadHeaderLogo);
+
         // Function to create a job card
         function createJobCard(job) {
             return `
                 <div class="job-card" data-job-id="${job._id}">
-                    <img src="${job.companyLogo ? '/uploads/' + job.companyLogo : '/images/default-company.png'}" alt="${job.companyName} Logo" class="company-logo">
+                    <img src="${job.companyLogo ? job.companyLogo : '/images/default-company.png'}" alt="${job.companyName} Logo" class="company-logo">
                     <div class="job-title">${job.title || 'Position Available'}</div>
                     <div class="company-name">${job.companyName}</div>
                     <div class="job-details">
@@ -659,7 +681,7 @@
 
         // Function to show job details in modal
         function showJobDetails(job) {
-            document.getElementById('modal-company-logo').src = job.companyLogo ? '/uploads/' + job.companyLogo : '/images/default-company.png';
+            document.getElementById('modal-company-logo').src = job.companyLogo ? job.companyLogo : '/images/default-company.png';
             document.getElementById('modal-job-title').textContent = job.title || 'Position Available';
             document.getElementById('modal-company-name').textContent = job.companyName;
             document.getElementById('modal-location').textContent = job.location || 'Location not specified';

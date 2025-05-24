@@ -1,36 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const Company = require('../models/Company');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
-const path = require('path');
 
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        // Determine the destination based on the field name
-        if (file.fieldname === 'companyLogo') {
-            cb(null, 'public/uploads/');
-        } else {
-            cb(null, 'public/uploads/founders/');
-        }
+// Configure Cloudinary storage for Multer
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'job_start_karen',
+        format: async (req, file) => 'png',
+        public_id: (req, file) => `${file.fieldname}-${Date.now()}`,
     },
-    filename: function (req, file, cb) {
-        // Generate unique filename
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
 });
 
-const upload = multer({
-    storage: storage,
-    fileFilter: function (req, file, cb) {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'), false);
-        }
-    }
-});
+// Use Multer with Cloudinary storage
+const upload = multer({ storage: storage });
 
 // Middleware to check if user is admin
 const checkAdmin = (req, res, next) => {
@@ -73,23 +59,38 @@ router.put('/', checkAdmin, upload.fields([
         const parsedContactInfo = JSON.parse(contactInfo);
         const parsedSocialMedia = JSON.parse(socialMedia);
 
+        let company = await Company.findOne(); // Fetch company first
+
         // Handle company logo upload
-        let logoFilename = null;
+        let logoUrl = company && company.logo ? company.logo : ''; // Keep existing logo URL by default
         if (req.files && req.files.companyLogo && req.files.companyLogo[0]) {
-            logoFilename = req.files.companyLogo[0].filename;
+            // Multer-storage-cloudinary has already uploaded the file
+            logoUrl = req.files.companyLogo[0].path; // Use the new Cloudinary URL
         }
 
         // Update founder images if uploaded
+        // We need to match uploaded files to founders. Assuming the order matches the form.
+        // If a founder already has an image and no new image is uploaded, keep the old one.
         if (req.files && req.files.founderImages && req.files.founderImages.length > 0) {
-            req.files.founderImages.forEach((file, index) => {
-                // Ensure the founder object exists at this index before assigning the image
+             req.files.founderImages.forEach((file, index) => {
                 if (parsedFounders[index]) {
-                    parsedFounders[index].image = file.filename;
+                    // file.path contains the Cloudinary secure_url
+                     parsedFounders[index].image = file.path; 
                 }
             });
         }
+        
+        // Preserve existing founder images if no new one was uploaded for that founder when updating
+        if (company && company.founders) {
+            company.founders.forEach((existingFounder, index) => {
+                 // If the parsed founder exists and doesn't have a new image assigned (because no file was uploaded)
+                 // AND the existing founder had an image, keep the existing image.
+                 if (parsedFounders[index] && !parsedFounders[index].image && existingFounder.image) {
+                    parsedFounders[index].image = existingFounder.image;
+                 }
+            });
+        }
 
-        const company = await Company.findOne();
         if (company) {
             // Update existing company info
             Object.assign(company, {
@@ -99,12 +100,9 @@ router.put('/', checkAdmin, upload.fields([
                 contactInfo: parsedContactInfo,
                 socialMedia: parsedSocialMedia,
                 lastUpdatedBy: req.session.user.mobile,
-                lastUpdatedAt: new Date()
+                lastUpdatedAt: new Date(),
+                logo: logoUrl // Assign the determined logo URL
             });
-            // Update logo if new one was uploaded
-            if (logoFilename) {
-                company.logo = logoFilename;
-            }
             await company.save();
         } else {
             // Create new company info
@@ -115,8 +113,16 @@ router.put('/', checkAdmin, upload.fields([
                 contactInfo: parsedContactInfo,
                 socialMedia: parsedSocialMedia,
                 lastUpdatedBy: req.session.user.mobile,
-                logo: logoFilename || 'company-logo.png'
+                logo: logoUrl // Assign the determined logo URL
             });
+             // Need to handle the case where a new company is created with founder images
+             if (req.files && req.files.founderImages && req.files.founderImages.length > 0) {
+                 req.files.founderImages.forEach((file, index) => {
+                     if (newCompany.founders[index]) {
+                         newCompany.founders[index].image = file.path;
+                     }
+                 });
+             }
             await newCompany.save();
         }
 

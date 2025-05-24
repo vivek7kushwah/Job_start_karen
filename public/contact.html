@@ -404,9 +404,8 @@
     </div>
 
     <header>
-        <img src="/images/logo.png" alt="JOB START KAREN Logo" style="height: 40px; margin-right: 10px;">
+        <img id="site-company-logo" src="" alt="Company Logo" style="height: 40px; margin-right: 10px;">
         <h1> JOB START KAREN</h1>
-        <img id="site-company-logo" src="" alt="Company Logo" style="height: 40px; margin-left: 10px; display: none;">
     </header>
 
     <div class="contact-container">
@@ -552,13 +551,13 @@
                 // Update logo in admin form section
                 const adminLogoImg = document.getElementById('company-logo');
                 if (adminLogoImg && company.logo) {
-                    adminLogoImg.src = `/uploads/${company.logo}`;
+                    adminLogoImg.src = company.logo; // Use Cloudinary URL
                 }
 
                 // Update logo in site header
                 const siteLogoImg = document.getElementById('site-company-logo');
                 if (siteLogoImg && company.logo) {
-                    siteLogoImg.src = `/uploads/${company.logo}`;
+                    siteLogoImg.src = company.logo; // Use Cloudinary URL
                     siteLogoImg.style.display = 'inline-block'; // Show the logo
                 } else if (siteLogoImg) {
                     siteLogoImg.style.display = 'none'; // Hide if no logo
@@ -568,7 +567,7 @@
                 const foundersGrid = document.getElementById('founders-grid');
                 foundersGrid.innerHTML = company.founders.map(founder => `
                     <div class="founder-card">
-                        <img src="/uploads/founders/${founder.image}" alt="${founder.name}" class="founder-image">
+                        <img src="${founder.image}" alt="${founder.name}" class="founder-image">
                         <h3 class="founder-name">${founder.name}</h3>
                         <p class="founder-role">${founder.role}</p>
                         <p class="founder-bio">${founder.bio}</p>

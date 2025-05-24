@@ -12,7 +12,7 @@ const companySchema = new mongoose.Schema({
     },
     logo: {
         type: String,
-        default: 'company-logo.png'
+        default: ''
     },
     founders: [{
         name: {

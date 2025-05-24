@@ -1,36 +1,35 @@
 const express = require('express');
 const Job = require('../models/Job');
 const multer = require('multer');
-const path = require('path');
+const path = require('path'); // Uncomment this line
 const User = require('../models/User');
+const cloudinary = require('cloudinary').v2; // Import cloudinary
+const { CloudinaryStorage } = require('multer-storage-cloudinary'); // Import CloudinaryStorage
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/uploads/');
+// Configure Cloudinary storage for Multer (similar to company routes)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'job_start_karen/jobs', // Store job-related images in a subfolder
+    format: async (req, file) => 'png', // supports promises as well
+    public_id: (req, file) => `${file.fieldname}-${Date.now()}`,
   },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
 });
 
-const upload = multer({ 
-  storage: storage,
-  fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-});
+// Use Multer with Cloudinary storage
+const upload = multer({ storage: storage });
 
 // Middleware to check if user is logged in
 const checkAuth = (req, res, next) => {
+  console.log('checkAuth middleware hit for', req.method, req.path);
+  console.log('req.session.user:', req.session.user);
   if (!req.session.user) {
+    console.log('User not authenticated. Sending 401.');
     return res.status(401).json({ message: 'Please login first' });
   }
+  console.log('User authenticated. Proceeding.');
   next();
 };
 
@@ -65,8 +64,9 @@ router.post('/add', checkAuth, upload.fields([{ name: 'jobImage', maxCount: 1 },
     });
   }
   
-  const jobImage = req.files?.jobImage ? req.files.jobImage[0].filename : null;
-  const companyLogo = req.files?.companyLogo ? req.files.companyLogo[0].filename : null;
+  // Get Cloudinary URLs from upload result
+  const jobImage = req.files?.jobImage ? req.files.jobImage[0].path : null;
+  const companyLogo = req.files?.companyLogo ? req.files.companyLogo[0].path : null;
 
   try {
     const newJob = new Job({ 
